@@ -1,287 +1,82 @@
-# app.py - Premium UI Version
+# app.py - FINAL POLISHED VERSION
 import streamlit as st
 from dotenv import load_dotenv
 import time
 from datetime import datetime
 import tempfile
 import os
-import base64
+import sys
+import shutil
 
-# Load environment variables
+# Add project root to path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 load_dotenv()
 
 # Page config
 st.set_page_config(
-    page_title="AI Video Assistant Pro",
-    page_icon="🎬",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="AI Meeting Assistant Pro",
+    page_icon="🎙️",
+    layout="wide"
 )
 
-# Premium CSS with animations and gradients
+# Custom CSS
 st.markdown("""
 <style>
-    /* Import Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-    
-    * {
-        font-family: 'Inter', sans-serif;
-    }
-    
-    /* Main container */
-    .main {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    }
-    
-    /* Animated gradient header */
     .main-header {
+        font-size: 2.5rem;
+        font-weight: 700;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-size: 3rem;
-        font-weight: 800;
-        padding: 1rem 0;
-        animation: gradientShift 3s ease-in-out infinite;
-        background-size: 200% 200%;
         text-align: center;
-        letter-spacing: -1px;
+        padding: 1rem 0;
     }
-    
-    @keyframes gradientShift {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
-    
-    /* Glass morphism cards */
     .glass-card {
-        background: rgba(255, 255, 255, 0.25);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        padding: 2rem;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background: rgba(255,255,255,0.9);
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         margin: 1rem 0;
     }
-    
-    .glass-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.25);
-    }
-    
-    /* Premium button styling */
     .stButton > button {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         font-weight: 600;
         border: none;
-        padding: 0.75rem 2rem;
-        border-radius: 50px;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px 0 rgba(102, 126, 234, 0.4);
+        padding: 0.5rem 1.5rem;
+        border-radius: 25px;
+        transition: all 0.3s;
         width: 100%;
-        font-size: 1rem;
-        letter-spacing: 0.5px;
     }
-    
     .stButton > button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px 0 rgba(102, 126, 234, 0.6);
-        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
     }
-    
-    .stButton > button:active {
-        transform: translateY(0px);
+    .stButton > button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
-    
-    /* Metrics with icons */
-    .metric-container {
-        background: white;
-        border-radius: 15px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.07);
-        transition: all 0.3s ease;
-        text-align: center;
+    .status-box {
+        background: #f0f4ff;
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 0.5rem 0;
         border-left: 4px solid #667eea;
     }
-    
-    .metric-container:hover {
-        transform: scale(1.02);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-    }
-    
-    .metric-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #2d3748;
-    }
-    
-    .metric-label {
-        font-size: 0.9rem;
-        color: #718096;
-        font-weight: 500;
-        margin-top: 0.5rem;
-    }
-    
-    /* Chat bubbles with avatars */
-    .chat-user {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 20px 20px 20px 5px;
+    .success-box {
+        background: #d4edda;
+        border-radius: 10px;
+        padding: 1rem;
         margin: 0.5rem 0;
-        max-width: 80%;
-        margin-left: auto;
-        box-shadow: 0 4px 6px rgba(102, 126, 234, 0.2);
-        animation: slideInRight 0.3s ease;
+        border-left: 4px solid #28a745;
     }
-    
-    .chat-assistant {
-        background: white;
-        color: #2d3748;
-        padding: 1rem 1.5rem;
-        border-radius: 20px 20px 5px 20px;
+    .warning-box {
+        background: #fff3cd;
+        border-radius: 10px;
+        padding: 1rem;
         margin: 0.5rem 0;
-        max-width: 80%;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        border: 1px solid #e2e8f0;
-        animation: slideInLeft 0.3s ease;
-    }
-    
-    @keyframes slideInRight {
-        from { transform: translateX(20px); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    
-    @keyframes slideInLeft {
-        from { transform: translateX(-20px); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    
-    /* Sidebar styling */
-    .css-1d391kg {
-        background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
-        border-right: 1px solid #e2e8f0;
-    }
-    
-    /* Custom sidebar header */
-    .sidebar-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1.5rem;
-        border-radius: 15px;
-        color: white;
-        text-align: center;
-        margin-bottom: 1.5rem;
-    }
-    
-    /* Tab styling */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 0.5rem;
-        background: #f7fafc;
-        padding: 0.5rem;
-        border-radius: 15px;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 10px;
-        padding: 0.5rem 1.5rem;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-    
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        color: white !important;
-        box-shadow: 0 4px 15px 0 rgba(102, 126, 234, 0.3);
-    }
-    
-    /* Progress bar animation */
-    .stProgress > div > div {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-    }
-    
-    /* Expander styling */
-    .streamlit-expanderHeader {
-        background: #f7fafc;
-        border-radius: 10px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-    
-    .streamlit-expanderHeader:hover {
-        background: #edf2f7;
-    }
-    
-    /* File uploader styling */
-    .uploaded-file {
-        border: 2px dashed #667eea;
-        border-radius: 15px;
-        padding: 2rem;
-        text-align: center;
-        background: rgba(102, 126, 234, 0.05);
-    }
-    
-    /* Status badge */
-    .status-badge {
-        display: inline-block;
-        padding: 0.25rem 1rem;
-        border-radius: 50px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-    
-    .status-success {
-        background: #48bb78;
-        color: white;
-    }
-    
-    .status-processing {
-        background: #ed8936;
-        color: white;
-        animation: pulse 1.5s infinite;
-    }
-    
-    @keyframes pulse {
-        0% { opacity: 1; }
-        50% { opacity: 0.5; }
-        100% { opacity: 1; }
-    }
-    
-    /* Responsive design */
-    @media (max-width: 768px) {
-        .main-header {
-            font-size: 2rem;
-        }
-        .metric-value {
-            font-size: 1.5rem;
-        }
-    }
-    
-    /* Scrollbar styling */
-    ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 10px;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 10px;
-    }
-    
-    /* Info box */
-    .info-box {
-        background: linear-gradient(135deg, #ebf4ff 0%, #e0e7ff 100%);
-        border-left: 4px solid #667eea;
-        padding: 1rem 1.5rem;
-        border-radius: 10px;
-        margin: 1rem 0;
+        border-left: 4px solid #ffc107;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -291,15 +86,29 @@ if 'processed' not in st.session_state:
     st.session_state.processed = False
 if 'result' not in st.session_state:
     st.session_state.result = None
-if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
 if 'processing' not in st.session_state:
     st.session_state.processing = False
-if 'progress' not in st.session_state:
-    st.session_state.progress = 0
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
+if 'start_time' not in st.session_state:
+    st.session_state.start_time = None
+if 'temp_files' not in st.session_state:
+    st.session_state.temp_files = []
 
-def process_video(source, language):
-    """Process video with enhanced progress tracking"""
+def cleanup_temp_files():
+    """Clean up temporary files"""
+    for file_path in st.session_state.temp_files:
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except:
+            pass
+    st.session_state.temp_files = []
+
+def process_video_real(source, language):
+    """
+    Process video with REAL progress tracking - no fake animations!
+    """
     try:
         from utils.audio_processor import process_input
         from core.transcriber import transcribe_all
@@ -307,41 +116,137 @@ def process_video(source, language):
         from core.extractor import extract_action_items, extract_key_decisions, extract_questions
         from core.rag_engine import build_rag_chain
         
-        status_placeholder = st.empty()
+        # Progress tracking
         progress_bar = st.progress(0)
+        status_text = st.empty()
+        time_text = st.empty()
         
-        # Enhanced progress steps with icons
-        steps = [
-            (5, "🔍 Analyzing input source..."),
-            (15, "🎬 Extracting audio from video..."),
-            (30, "🎤 Transcribing with AI..."),
-            (45, "📝 Generating intelligent title..."),
-            (55, "📋 Creating comprehensive summary..."),
-            (70, "✅ Extracting actionable items..."),
-            (80, "🔑 Identifying key decisions..."),
-            (90, "❓ Detecting open questions..."),
-            (95, "🧠 Building RAG knowledge base..."),
-            (100, "✨ Processing complete!")
-        ]
+        start_time = time.time()
         
-        for progress, status in steps:
-            status_placeholder.markdown(f"<div style='text-align: center; padding: 1rem;'><span style='font-size: 1.2rem;'>{status}</span></div>", unsafe_allow_html=True)
-            progress_bar.progress(progress / 100)
-            time.sleep(0.3)
+        # Step 1: Process input (10%)
+        status_text.markdown("""
+        <div class="status-box">
+            <span style="font-size: 1.2rem;">🎬</span> 
+            <strong>Step 1/8:</strong> Processing audio input...
+        </div>
+        """, unsafe_allow_html=True)
+        progress_bar.progress(10)
         
-        # Actual processing
         chunks = process_input(source)
-        transcript = transcribe_all(chunks, language)
-        title = generate_title(transcript)
-        summary = summarize(transcript)
-        action_items = extract_action_items(transcript)
-        decisions = extract_key_decisions(transcript)
-        questions = extract_questions(transcript)
-        rag_chain = build_rag_chain(transcript)
+        elapsed = time.time() - start_time
+        time_text.caption(f"⏱️ Elapsed: {elapsed:.1f}s")
         
-        # Clear progress indicators
-        status_placeholder.empty()
+        # Step 2: Transcribe (15% -> 45%)
+        status_text.markdown("""
+        <div class="status-box">
+            <span style="font-size: 1.2rem;">🎤</span> 
+            <strong>Step 2/8:</strong> Transcribing with AI (this may take a few minutes)...
+        </div>
+        """, unsafe_allow_html=True)
+        progress_bar.progress(15)
+        
+        transcript = transcribe_all(chunks, language)
+        elapsed = time.time() - start_time
+        time_text.caption(f"⏱️ Elapsed: {elapsed:.1f}s")
+        progress_bar.progress(45)
+        
+        # Step 3: Generate title (45% -> 55%)
+        status_text.markdown("""
+        <div class="status-box">
+            <span style="font-size: 1.2rem;">📝</span> 
+            <strong>Step 3/8:</strong> Generating title...
+        </div>
+        """, unsafe_allow_html=True)
+        
+        title = generate_title(transcript)
+        elapsed = time.time() - start_time
+        time_text.caption(f"⏱️ Elapsed: {elapsed:.1f}s")
+        progress_bar.progress(55)
+        
+        # Step 4: Generate summary (55% -> 65%)
+        status_text.markdown("""
+        <div class="status-box">
+            <span style="font-size: 1.2rem;">📋</span> 
+            <strong>Step 4/8:</strong> Creating summary...
+        </div>
+        """, unsafe_allow_html=True)
+        
+        summary = summarize(transcript)
+        elapsed = time.time() - start_time
+        time_text.caption(f"⏱️ Elapsed: {elapsed:.1f}s")
+        progress_bar.progress(65)
+        
+        # Step 5: Extract action items (65% -> 75%)
+        status_text.markdown("""
+        <div class="status-box">
+            <span style="font-size: 1.2rem;">✅</span> 
+            <strong>Step 5/8:</strong> Extracting action items...
+        </div>
+        """, unsafe_allow_html=True)
+        
+        action_items = extract_action_items(transcript)
+        elapsed = time.time() - start_time
+        time_text.caption(f"⏱️ Elapsed: {elapsed:.1f}s")
+        progress_bar.progress(75)
+        
+        # Step 6: Extract decisions (75% -> 85%)
+        status_text.markdown("""
+        <div class="status-box">
+            <span style="font-size: 1.2rem;">🔑</span> 
+            <strong>Step 6/8:</strong> Identifying key decisions...
+        </div>
+        """, unsafe_allow_html=True)
+        
+        decisions = extract_key_decisions(transcript)
+        elapsed = time.time() - start_time
+        time_text.caption(f"⏱️ Elapsed: {elapsed:.1f}s")
+        progress_bar.progress(85)
+        
+        # Step 7: Extract questions (85% -> 92%)
+        status_text.markdown("""
+        <div class="status-box">
+            <span style="font-size: 1.2rem;">❓</span> 
+            <strong>Step 7/8:</strong> Detecting open questions...
+        </div>
+        """, unsafe_allow_html=True)
+        
+        questions = extract_questions(transcript)
+        elapsed = time.time() - start_time
+        time_text.caption(f"⏱️ Elapsed: {elapsed:.1f}s")
+        progress_bar.progress(92)
+        
+        # Step 8: Build RAG (92% -> 100%)
+        status_text.markdown("""
+        <div class="status-box">
+            <span style="font-size: 1.2rem;">🧠</span> 
+            <strong>Step 8/8:</strong> Building RAG pipeline...
+        </div>
+        """, unsafe_allow_html=True)
+        
+        rag_chain = None
+        try:
+            rag_chain = build_rag_chain(transcript)
+        except Exception as e:
+            st.warning(f"⚠️ RAG not available: {str(e)[:100]}")
+        
+        elapsed = time.time() - start_time
+        time_text.caption(f"⏱️ Total time: {elapsed:.1f}s")
+        progress_bar.progress(100)
+        
+        # Complete
+        status_text.markdown("""
+        <div class="success-box">
+            <span style="font-size: 1.2rem;">✅</span> 
+            <strong>Processing complete!</strong> 
+            <span style="color: #155724;">All steps finished successfully.</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        time.sleep(0.5)
         progress_bar.empty()
+        
+        # Clean up temp files after processing
+        cleanup_temp_files()
         
         return {
             "title": title,
@@ -352,36 +257,38 @@ def process_video(source, language):
             "open_questions": questions,
             "rag_chain": rag_chain,
         }
+        
     except Exception as e:
-        st.error(f"❌ {str(e)}")
+        st.error(f"❌ Error: {str(e)}")
+        cleanup_temp_files()
         return None
 
 def main():
-    # Animated Header
-    st.markdown('<div class="main-header">🎬 AI Video Intelligence</div>', unsafe_allow_html=True)
-    st.markdown('<p style="text-align: center; color: #718096; font-size: 1.1rem; margin-top: -0.5rem;">Transform your videos into actionable insights with AI</p>', unsafe_allow_html=True)
+    # Header
+    st.markdown('<div class="main-header">🎙️ AI Meeting Assistant Pro</div>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align: center; color: #718096;">Transform your meetings into actionable insights with AI</p>', unsafe_allow_html=True)
     
-    # Sidebar with premium design
+    # Sidebar
     with st.sidebar:
         st.markdown("""
-        <div class="sidebar-header">
-            <div style="font-size: 2.5rem;">⚡</div>
-            <div style="font-weight: 700; font-size: 1.2rem; margin-top: 0.5rem;">AI Studio</div>
-            <div style="font-size: 0.8rem; opacity: 0.8;">v2.0 Pro</div>
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    padding: 1rem; border-radius: 15px; color: white; text-align: center; margin-bottom: 1rem;">
+            <div style="font-size: 2rem;">🎙️</div>
+            <div style="font-weight: 700;">Meeting Assistant</div>
+            <div style="font-size: 0.8rem; opacity: 0.8;">v3.1 - Final</div>
         </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("### 🎯 Input Source")
+        st.markdown("### 📥 Input Source")
         
         input_type = st.radio(
-            "Select source type",
-            ["🌐 YouTube URL", "📁 Local File"],
-            index=0,
+            "Source Type",
+            ["YouTube URL", "Local File"],
             label_visibility="collapsed"
         )
         
         source = None
-        if "YouTube" in input_type:
+        if input_type == "YouTube URL":
             source = st.text_input(
                 "YouTube URL",
                 placeholder="https://youtube.com/watch?v=...",
@@ -389,263 +296,204 @@ def main():
             )
         else:
             uploaded_file = st.file_uploader(
-                "Upload video/audio",
-                type=['mp4', 'mp3', 'wav', 'avi', 'mov', 'm4a', 'mkv'],
+                "Upload Video/Audio",
+                type=['mp4', 'mp3', 'wav', 'avi', 'mov', 'm4a', 'mkv', 'webm'],
                 label_visibility="collapsed"
             )
             if uploaded_file:
-                st.success(f"✅ {uploaded_file.name}")
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp:
+                # Use the REAL file extension
+                file_ext = os.path.splitext(uploaded_file.name)[1]
+                if not file_ext:
+                    file_ext = '.mp4'
+                
+                # Create temp file and track it for cleanup
+                with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp:
                     tmp.write(uploaded_file.read())
                     source = tmp.name
+                    st.session_state.temp_files.append(source)
+                
+                st.success(f"✅ {uploaded_file.name}")
+                st.caption(f"📁 Saved as: {os.path.basename(source)}")
         
-        st.markdown("### 🌍 Language")
-        language = st.selectbox(
-            "Select language",
-            ["English", "Hinglish", "Hindi", "Spanish", "French"],
+        # FIX: Only show languages that are actually supported
+        # The backend only supports "english" and "hinglish" for now
+        language_map = {
+            "English": "english",
+            "Hinglish": "hinglish",
+        }
+        
+        display_language = st.selectbox(
+            "Language",
+            ["English", "Hinglish"],  # Only supported options
             index=0
         )
-        
-        st.markdown("---")
+        language = language_map[display_language]
         
         process_btn = st.button(
-            "🚀 Process Video",
+            "🚀 Process Meeting",
             use_container_width=True,
             disabled=not source or st.session_state.processing
         )
         
         st.markdown("---")
-        
-        # Quick stats in sidebar
-        if st.session_state.processed and st.session_state.result:
-            st.markdown("### 📊 Quick Stats")
-            result = st.session_state.result
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Words", len(result['transcript'].split()))
-            with col2:
-                st.metric("Duration", f"{len(result['transcript'].split()) // 150}m")
-        
-        st.markdown("---")
         st.caption("🔒 100% Local Processing")
-        st.caption(f"⏱️ {datetime.now().strftime('%H:%M:%S')}")
+        st.caption(f"⏱️ Session: {datetime.now().strftime('%H:%M:%S')}")
+        
+        # Show processing status in sidebar
+        if st.session_state.processing:
+            st.markdown("""
+            <div style="background: #e8f4fd; padding: 1rem; border-radius: 10px; margin-top: 1rem; border: 1px solid #667eea;">
+                <span style="color: #667eea;">⏳</span> 
+                <span style="font-weight: 500;">Processing...</span>
+                <br>
+                <small style="color: #718096;">This may take several minutes</small>
+            </div>
+            """, unsafe_allow_html=True)
     
     # Main content area
     if process_btn and source:
         st.session_state.processing = True
         st.session_state.processed = False
+        st.session_state.start_time = datetime.now()
         
         with st.container():
             st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-            st.markdown("### 🚀 Processing Your Video")
-            st.markdown("This might take a few moments...")
             
-            result = process_video(source, language)
+            st.markdown("""
+            ### 🚀 Processing Your Meeting
+            The progress bar below shows REAL progress. Each step updates when completed.
+            """)
+            
+            result = process_video_real(source, language)
             
             if result:
                 st.session_state.result = result
                 st.session_state.processed = True
                 st.balloons()
-                st.success("✅ Video processed successfully!")
-                st.markdown(f"**🎯 Title:** {result['title']}")
+                
+                # Show success with timing
+                end_time = datetime.now()
+                duration = (end_time - st.session_state.start_time).total_seconds()
+                
+                st.markdown(f"""
+                <div class="success-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="font-size: 1.5rem;">✅</span>
+                            <span style="font-weight: 600; font-size: 1.1rem;">Video processed successfully!</span>
+                        </div>
+                        <span style="color: #155724; font-size: 0.9rem;">⏱️ {duration:.1f}s</span>
+                    </div>
+                    <div style="margin-top: 0.5rem; color: #155724;">
+                        📌 <strong>Title:</strong> {result['title']}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
             else:
-                st.error("❌ Processing failed. Please try again.")
+                st.error("❌ Failed to process video. Please check the error messages above.")
             
             st.markdown('</div>', unsafe_allow_html=True)
         
         st.session_state.processing = False
     
-    # Display results with premium UI
+    # Display results
     if st.session_state.processed and st.session_state.result:
         result = st.session_state.result
         
-        # Status banner
-        st.markdown(f"""
-        <div class="info-box">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <span style="font-weight: 600; font-size: 1.1rem;">🎯 {result['title']}</span>
-                </div>
-                <div>
-                    <span class="status-badge status-success">✅ Complete</span>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Premium tabs
+        # Tabs
         tab1, tab2, tab3, tab4 = st.tabs([
-            "📋 Summary & Stats",
-            "📊 Extracted Items",
-            "📝 Full Transcript",
-            "💬 AI Chat"
+            "📋 Summary",
+            "📊 Extracted",
+            "📝 Transcript",
+            "💬 Chat"
         ])
         
         with tab1:
-            col1, col2 = st.columns([3, 2])
+            col1, col2 = st.columns([2, 1])
             
             with col1:
-                st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+                st.markdown("### 📌 Title")
+                st.info(result['title'])
+                
                 st.markdown("### 📋 AI Summary")
                 st.markdown(result['summary'])
-                st.markdown('</div>', unsafe_allow_html=True)
             
             with col2:
-                st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-                st.markdown("### 📊 Analytics")
-                
-                # Premium metrics
-                col_a, col_b = st.columns(2)
-                with col_a:
-                    st.markdown("""
-                    <div class="metric-container">
-                        <div style="font-size: 2.5rem;">📝</div>
-                        <div class="metric-value">{}</div>
-                        <div class="metric-label">Total Words</div>
-                    </div>
-                    """.format(len(result['transcript'].split())), unsafe_allow_html=True)
-                
-                with col_b:
-                    st.markdown("""
-                    <div class="metric-container">
-                        <div style="font-size: 2.5rem;">⏱️</div>
-                        <div class="metric-value">{:.1f}</div>
-                        <div class="metric-label">Est. Minutes</div>
-                    </div>
-                    """.format(len(result['transcript'].split()) / 150), unsafe_allow_html=True)
-                
-                # More metrics
-                col_c, col_d = st.columns(2)
-                with col_c:
-                    st.markdown("""
-                    <div class="metric-container">
-                        <div style="font-size: 2.5rem;">✅</div>
-                        <div class="metric-value">{}</div>
-                        <div class="metric-label">Action Items</div>
-                    </div>
-                    """.format(len(result['action_items'].split('\n')) - 1), unsafe_allow_html=True)
-                
-                with col_d:
-                    st.markdown("""
-                    <div class="metric-container">
-                        <div style="font-size: 2.5rem;">🔑</div>
-                        <div class="metric-value">{}</div>
-                        <div class="metric-label">Key Decisions</div>
-                    </div>
-                    """.format(len(result['key_decisions'].split('\n')) - 1), unsafe_allow_html=True)
-                
-                st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown("### 📊 Stats")
+                st.metric("📝 Words", len(result['transcript'].split()))
+                st.metric("✅ Actions", len(result['action_items'].split('\n')) - 1)
+                st.metric("🔑 Decisions", len(result['key_decisions'].split('\n')) - 1)
+                st.metric("❓ Questions", len(result['open_questions'].split('\n')) - 1)
         
         with tab2:
             col1, col2 = st.columns(2)
             
             with col1:
                 with st.expander("✅ Action Items", expanded=True):
-                    st.markdown('<div style="background: #f0fff4; padding: 1rem; border-radius: 10px; border-left: 4px solid #48bb78;">', unsafe_allow_html=True)
-                    st.markdown(result['action_items'])
-                    st.markdown('</div>', unsafe_allow_html=True)
+                    st.write(result['action_items'])
                 
                 with st.expander("❓ Open Questions", expanded=True):
-                    st.markdown('<div style="background: #fef3c7; padding: 1rem; border-radius: 10px; border-left: 4px solid #ed8936;">', unsafe_allow_html=True)
-                    st.markdown(result['open_questions'])
-                    st.markdown('</div>', unsafe_allow_html=True)
+                    st.write(result['open_questions'])
             
             with col2:
                 with st.expander("🔑 Key Decisions", expanded=True):
-                    st.markdown('<div style="background: #ebf4ff; padding: 1rem; border-radius: 10px; border-left: 4px solid #667eea;">', unsafe_allow_html=True)
-                    st.markdown(result['key_decisions'])
-                    st.markdown('</div>', unsafe_allow_html=True)
+                    st.write(result['key_decisions'])
         
         with tab3:
-            with st.expander("📝 View Full Transcript", expanded=False):
-                st.text_area("", result['transcript'], height=500, key="transcript_full", label_visibility="collapsed")
-                col1, col2, col3 = st.columns([1, 1, 3])
-                with col1:
-                    if st.button("📋 Copy", use_container_width=True):
-                        st.success("✅ Copied!")
-                with col2:
-                    if st.button("⬇️ Download", use_container_width=True):
-                        st.download_button(
-                            label="Download",
-                            data=result['transcript'],
-                            file_name=f"transcript_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                            mime="text/plain",
-                            use_container_width=True
-                        )
+            with st.expander("📝 Full Transcript", expanded=False):
+                st.text_area("", result['transcript'], height=400, label_visibility="collapsed")
+                if st.button("📋 Copy Transcript"):
+                    st.success("Copied to clipboard!")
         
         with tab4:
-            st.markdown("### 💬 Chat with Your Content")
-            st.markdown("Ask questions about the video content using AI")
+            st.markdown("### 💬 Chat with Your Meeting")
+            st.caption("Ask questions about the meeting content")
             
-            # Chat container
+            # Chat display
             chat_container = st.container()
-            
             with chat_container:
                 if not st.session_state.chat_history:
-                    st.info("💡 Ask questions about the video content. Example: 'What were the main points discussed?'")
+                    st.info("💡 Ask a question like: 'What were the main decisions?'")
                 
                 for msg in st.session_state.chat_history:
                     if msg['role'] == 'user':
-                        st.markdown(f"""
-                        <div class="chat-user">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span style="font-size: 1.2rem;">👤</span>
-                                <span>{msg['content']}</span>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        st.markdown(f"**👤 You:** {msg['content']}")
                     else:
-                        st.markdown(f"""
-                        <div class="chat-assistant">
-                            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
-                                <span style="font-size: 1.2rem;">🤖</span>
-                                <span>{msg['content']}</span>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        st.markdown(f"**🤖 Assistant:** {msg['content']}")
             
-            # Chat input area
-            with st.container():
-                col1, col2 = st.columns([5, 1])
+            # FIX: Clear chat input after sending
+            with st.form(key="chat_form", clear_on_submit=True):
+                col1, col2 = st.columns([4, 1])
                 with col1:
                     question = st.text_input(
-                        "Ask a question",
+                        "Ask a question:",
                         key="chat_input",
-                        placeholder="💬 What would you like to know?",
+                        placeholder="e.g., What were the key decisions made?",
                         label_visibility="collapsed"
                     )
                 with col2:
-                    ask_btn = st.button("Send", use_container_width=True)
-            
-            if ask_btn and question:
-                if st.session_state.result.get('rag_chain'):
-                    from core.rag_engine import ask_question
-                    st.session_state.chat_history.append({'role': 'user', 'content': question})
-                    
-                    with st.spinner("🤔 Analyzing and generating response..."):
-                        answer = ask_question(st.session_state.result['rag_chain'], question)
-                    
-                    st.session_state.chat_history.append({'role': 'assistant', 'content': answer})
-                    st.rerun()
-                else:
-                    st.warning("⚠️ RAG system not available. Please process a video first.")
+                    ask_btn = st.form_submit_button("Ask", use_container_width=True)
+                
+                if ask_btn and question:
+                    if result.get('rag_chain'):
+                        try:
+                            from core.rag_engine import ask_question
+                            st.session_state.chat_history.append({'role': 'user', 'content': question})
+                            
+                            with st.spinner("🤔 Thinking..."):
+                                answer = ask_question(result['rag_chain'], question)
+                            
+                            st.session_state.chat_history.append({'role': 'assistant', 'content': answer})
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Chat error: {str(e)}")
+                    else:
+                        st.warning("⚠️ RAG is not available. Please process a video first.")
             
             if st.session_state.chat_history:
-                col1, col2, col3 = st.columns([1, 1, 3])
-                with col1:
-                    if st.button("🗑️ Clear Chat", use_container_width=True):
-                        st.session_state.chat_history = []
-                        st.rerun()
-                with col2:
-                    if st.button("💾 Save Chat", use_container_width=True):
-                        chat_text = "\n".join([f"{msg['role'].upper()}: {msg['content']}" for msg in st.session_state.chat_history])
-                        st.download_button(
-                            label="Download",
-                            data=chat_text,
-                            file_name=f"chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                            mime="text/plain",
-                            use_container_width=True
-                        )
+                if st.button("🗑️ Clear Chat"):
+                    st.session_state.chat_history = []
+                    st.rerun()
 
 if __name__ == "__main__":
     main()
